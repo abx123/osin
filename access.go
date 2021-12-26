@@ -151,10 +151,10 @@ func (s *Server) HandleAccessRequest(w *Response, r *http.Request) *AccessReques
 
 func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *AccessRequest {
 	// get client authentication
-	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
-	if auth == nil {
-		return nil
-	}
+	// auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
+	// if auth == nil {
+	// 	return nil
+	// }
 
 	// generate access token
 	ret := &AccessRequest{
@@ -174,8 +174,13 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 	}
 
 	// must have a valid client
-	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
-		return nil
+	// if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
+	// 	return nil
+	// }
+	if client, err := w.Storage.GetClient(r.FormValue("client_id")); err != nil || client == nil {
+		s.setErrorAndLog(w, E_INVALID_GRANT, err, "auth_code_request=%s", "error loading client")
+	} else {
+		ret.Client = client
 	}
 
 	// must be a valid authorization code
