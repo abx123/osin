@@ -35,7 +35,7 @@ type Storage interface {
 	LoadAuthorize(code string) (*AuthorizeData, error)
 
 	// RemoveAuthorize revokes or deletes the authorization code.
-	RemoveAuthorize(code string) error
+	// RemoveAuthorize(code string) error
 
 	// SaveAccess writes AccessData.
 	// If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
@@ -52,8 +52,8 @@ type Storage interface {
 	// LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
 	// AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 	// Optionally can return error if expired.
-	LoadRefresh(token string) (*AccessData, error)
+	// LoadRefresh(token string) (*AccessData, error)
 
 	// RemoveRefresh revokes or deletes refresh AccessData.
-	RemoveRefresh(token string) error
+	// RemoveRefresh(token string) error
 }

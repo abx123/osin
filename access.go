@@ -134,14 +134,15 @@ func (s *Server) HandleAccessRequest(w *Response, r *http.Request) *AccessReques
 		switch grantType {
 		case AUTHORIZATION_CODE:
 			return s.handleAuthorizationCodeRequest(w, r)
-		case REFRESH_TOKEN:
-			return s.handleRefreshTokenRequest(w, r)
-		case PASSWORD:
-			return s.handlePasswordRequest(w, r)
-		case CLIENT_CREDENTIALS:
-			return s.handleClientCredentialsRequest(w, r)
-		case ASSERTION:
-			return s.handleAssertionRequest(w, r)
+			// not in scope
+			// case REFRESH_TOKEN:
+			// 	return s.handleRefreshTokenRequest(w, r)
+			// case PASSWORD:
+			// 	return s.handlePasswordRequest(w, r)
+			// case CLIENT_CREDENTIALS:
+			// 	return s.handleClientCredentialsRequest(w, r)
+			// case ASSERTION:
+			// 	return s.handleAssertionRequest(w, r)
 		}
 	}
 
@@ -288,173 +289,173 @@ func extraScopes(access_scopes, refresh_scopes string) bool {
 	return false
 }
 
-func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *AccessRequest {
-	// get client authentication
-	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
-	if auth == nil {
-		return nil
-	}
+// func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *AccessRequest {
+// 	// get client authentication
+// 	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
+// 	if auth == nil {
+// 		return nil
+// 	}
 
-	// generate access token
-	ret := &AccessRequest{
-		Type:            REFRESH_TOKEN,
-		Code:            r.FormValue("refresh_token"),
-		Scope:           r.FormValue("scope"),
-		GenerateRefresh: true,
-		Expiration:      s.Config.AccessExpiration,
-		HttpRequest:     r,
-	}
+// 	// generate access token
+// 	ret := &AccessRequest{
+// 		Type:            REFRESH_TOKEN,
+// 		Code:            r.FormValue("refresh_token"),
+// 		Scope:           r.FormValue("scope"),
+// 		GenerateRefresh: true,
+// 		Expiration:      s.Config.AccessExpiration,
+// 		HttpRequest:     r,
+// 	}
 
-	// "refresh_token" is required
-	if ret.Code == "" {
-		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "refresh_token=%s", "refresh_token is required")
-		return nil
-	}
+// 	// "refresh_token" is required
+// 	if ret.Code == "" {
+// 		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "refresh_token=%s", "refresh_token is required")
+// 		return nil
+// 	}
 
-	// must have a valid client
-	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
-		return nil
-	}
+// 	// must have a valid client
+// 	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
+// 		return nil
+// 	}
 
-	// must be a valid refresh code
-	var err error
-	ret.AccessData, err = w.Storage.LoadRefresh(ret.Code)
-	if err != nil {
-		s.setErrorAndLog(w, E_INVALID_GRANT, err, "refresh_token=%s", "error loading access data")
-		return nil
-	}
-	if ret.AccessData == nil {
-		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data is nil")
-		return nil
-	}
-	if ret.AccessData.Client == nil {
-		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data client is nil")
-		return nil
-	}
-	if ret.AccessData.Client.GetRedirectUri() == "" {
-		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data client redirect uri is empty")
-		return nil
-	}
+// 	// must be a valid refresh code
+// 	var err error
+// 	ret.AccessData, err = w.Storage.LoadRefresh(ret.Code)
+// 	if err != nil {
+// 		s.setErrorAndLog(w, E_INVALID_GRANT, err, "refresh_token=%s", "error loading access data")
+// 		return nil
+// 	}
+// 	if ret.AccessData == nil {
+// 		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data is nil")
+// 		return nil
+// 	}
+// 	if ret.AccessData.Client == nil {
+// 		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data client is nil")
+// 		return nil
+// 	}
+// 	if ret.AccessData.Client.GetRedirectUri() == "" {
+// 		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "refresh_token=%s", "access data client redirect uri is empty")
+// 		return nil
+// 	}
 
-	// client must be the same as the previous token
-	if ret.AccessData.Client.GetId() != ret.Client.GetId() {
-		s.setErrorAndLog(w, E_INVALID_CLIENT, errors.New("Client id must be the same from previous token"), "refresh_token=%s, current=%v, previous=%v", "client mismatch", ret.Client.GetId(), ret.AccessData.Client.GetId())
-		return nil
+// 	// client must be the same as the previous token
+// 	if ret.AccessData.Client.GetId() != ret.Client.GetId() {
+// 		s.setErrorAndLog(w, E_INVALID_CLIENT, errors.New("Client id must be the same from previous token"), "refresh_token=%s, current=%v, previous=%v", "client mismatch", ret.Client.GetId(), ret.AccessData.Client.GetId())
+// 		return nil
 
-	}
+// 	}
 
-	// set rest of data
-	ret.RedirectUri = ret.AccessData.RedirectUri
-	ret.UserData = ret.AccessData.UserData
-	if ret.Scope == "" {
-		ret.Scope = ret.AccessData.Scope
-	}
+// 	// set rest of data
+// 	ret.RedirectUri = ret.AccessData.RedirectUri
+// 	ret.UserData = ret.AccessData.UserData
+// 	if ret.Scope == "" {
+// 		ret.Scope = ret.AccessData.Scope
+// 	}
 
-	if extraScopes(ret.AccessData.Scope, ret.Scope) {
-		msg := "the requested scope must not include any scope not originally granted by the resource owner"
-		s.setErrorAndLog(w, E_ACCESS_DENIED, errors.New(msg), "refresh_token=%s", msg)
-		return nil
-	}
+// 	if extraScopes(ret.AccessData.Scope, ret.Scope) {
+// 		msg := "the requested scope must not include any scope not originally granted by the resource owner"
+// 		s.setErrorAndLog(w, E_ACCESS_DENIED, errors.New(msg), "refresh_token=%s", msg)
+// 		return nil
+// 	}
 
-	return ret
-}
+// 	return ret
+// }
 
-func (s *Server) handlePasswordRequest(w *Response, r *http.Request) *AccessRequest {
-	// get client authentication
-	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
-	if auth == nil {
-		return nil
-	}
+// func (s *Server) handlePasswordRequest(w *Response, r *http.Request) *AccessRequest {
+// 	// get client authentication
+// 	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
+// 	if auth == nil {
+// 		return nil
+// 	}
 
-	// generate access token
-	ret := &AccessRequest{
-		Type:            PASSWORD,
-		Username:        r.FormValue("username"),
-		Password:        r.FormValue("password"),
-		Scope:           r.FormValue("scope"),
-		GenerateRefresh: true,
-		Expiration:      s.Config.AccessExpiration,
-		HttpRequest:     r,
-	}
+// 	// generate access token
+// 	ret := &AccessRequest{
+// 		Type:            PASSWORD,
+// 		Username:        r.FormValue("username"),
+// 		Password:        r.FormValue("password"),
+// 		Scope:           r.FormValue("scope"),
+// 		GenerateRefresh: true,
+// 		Expiration:      s.Config.AccessExpiration,
+// 		HttpRequest:     r,
+// 	}
 
-	// "username" and "password" is required
-	if ret.Username == "" || ret.Password == "" {
-		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "handle_password=%s", "username and pass required")
-		return nil
-	}
+// 	// "username" and "password" is required
+// 	if ret.Username == "" || ret.Password == "" {
+// 		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "handle_password=%s", "username and pass required")
+// 		return nil
+// 	}
 
-	// must have a valid client
-	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
-		return nil
-	}
+// 	// must have a valid client
+// 	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
+// 		return nil
+// 	}
 
-	// set redirect uri
-	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
+// 	// set redirect uri
+// 	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
 
-	return ret
-}
+// 	return ret
+// }
 
-func (s *Server) handleClientCredentialsRequest(w *Response, r *http.Request) *AccessRequest {
-	// get client authentication
-	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
-	if auth == nil {
-		return nil
-	}
+// func (s *Server) handleClientCredentialsRequest(w *Response, r *http.Request) *AccessRequest {
+// 	// get client authentication
+// 	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
+// 	if auth == nil {
+// 		return nil
+// 	}
 
-	// generate access token
-	ret := &AccessRequest{
-		Type:            CLIENT_CREDENTIALS,
-		Scope:           r.FormValue("scope"),
-		GenerateRefresh: false,
-		Expiration:      s.Config.AccessExpiration,
-		HttpRequest:     r,
-	}
+// 	// generate access token
+// 	ret := &AccessRequest{
+// 		Type:            CLIENT_CREDENTIALS,
+// 		Scope:           r.FormValue("scope"),
+// 		GenerateRefresh: false,
+// 		Expiration:      s.Config.AccessExpiration,
+// 		HttpRequest:     r,
+// 	}
 
-	// must have a valid client
-	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
-		return nil
-	}
+// 	// must have a valid client
+// 	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
+// 		return nil
+// 	}
 
-	// set redirect uri
-	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
+// 	// set redirect uri
+// 	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
 
-	return ret
-}
+// 	return ret
+// }
 
-func (s *Server) handleAssertionRequest(w *Response, r *http.Request) *AccessRequest {
-	// get client authentication
-	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
-	if auth == nil {
-		return nil
-	}
+// func (s *Server) handleAssertionRequest(w *Response, r *http.Request) *AccessRequest {
+// 	// get client authentication
+// 	auth := s.getClientAuth(w, r, s.Config.AllowClientSecretInParams)
+// 	if auth == nil {
+// 		return nil
+// 	}
 
-	// generate access token
-	ret := &AccessRequest{
-		Type:            ASSERTION,
-		Scope:           r.FormValue("scope"),
-		AssertionType:   r.FormValue("assertion_type"),
-		Assertion:       r.FormValue("assertion"),
-		GenerateRefresh: false, // assertion should NOT generate a refresh token, per the RFC
-		Expiration:      s.Config.AccessExpiration,
-		HttpRequest:     r,
-	}
+// 	// generate access token
+// 	ret := &AccessRequest{
+// 		Type:            ASSERTION,
+// 		Scope:           r.FormValue("scope"),
+// 		AssertionType:   r.FormValue("assertion_type"),
+// 		Assertion:       r.FormValue("assertion"),
+// 		GenerateRefresh: false, // assertion should NOT generate a refresh token, per the RFC
+// 		Expiration:      s.Config.AccessExpiration,
+// 		HttpRequest:     r,
+// 	}
 
-	// "assertion_type" and "assertion" is required
-	if ret.AssertionType == "" || ret.Assertion == "" {
-		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "handle_assertion_request=%s", "assertion and assertion_type required")
-		return nil
-	}
+// 	// "assertion_type" and "assertion" is required
+// 	if ret.AssertionType == "" || ret.Assertion == "" {
+// 		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "handle_assertion_request=%s", "assertion and assertion_type required")
+// 		return nil
+// 	}
 
-	// must have a valid client
-	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
-		return nil
-	}
+// 	// must have a valid client
+// 	if ret.Client = s.getClient(auth, w.Storage, w); ret.Client == nil {
+// 		return nil
+// 	}
 
-	// set redirect uri
-	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
+// 	// set redirect uri
+// 	ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), s.Config.RedirectUriSeparator)
 
-	return ret
-}
+// 	return ret
+// }
 
 func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessRequest) {
 	// don't process if is already an error
@@ -500,17 +501,17 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 		}
 
 		// remove authorization token
-		if ret.AuthorizeData != nil {
-			w.Storage.RemoveAuthorize(ret.AuthorizeData.Code)
-		}
+		// if ret.AuthorizeData != nil {
+		// 	w.Storage.RemoveAuthorize(ret.AuthorizeData.Code)
+		// }
 
 		// remove previous access token
-		if ret.AccessData != nil && !s.Config.RetainTokenAfterRefresh {
-			if ret.AccessData.RefreshToken != "" {
-				w.Storage.RemoveRefresh(ret.AccessData.RefreshToken)
-			}
-			w.Storage.RemoveAccess(ret.AccessData.AccessToken)
-		}
+		// if ret.AccessData != nil && !s.Config.RetainTokenAfterRefresh {
+		// 	if ret.AccessData.RefreshToken != "" {
+		// 		w.Storage.RemoveRefresh(ret.AccessData.RefreshToken)
+		// 	}
+		// 	w.Storage.RemoveAccess(ret.AccessData.AccessToken)
+		// }
 
 		// output data
 		w.Output["access_token"] = ret.AccessToken
