@@ -2,7 +2,6 @@ package osin
 
 import (
 	"net/http"
-	"time"
 )
 
 // InfoRequest is a request for information about some AccessData
@@ -18,6 +17,10 @@ func (s *Server) HandleInfoRequest(w *Response, r *http.Request) *InfoRequest {
 	bearer := CheckBearerAuth(r)
 	if bearer == nil {
 		s.setErrorAndLog(w, E_INVALID_REQUEST, nil, "handle_info_request=%s", "bearer is nil")
+		return nil
+	}
+	if r.FormValue("client_id") == "" {
+		s.setErrorAndLog(w, E_INVALID_REQUEST, nil, "handle_info_request=%s", "client_id is empty")
 		return nil
 	}
 
@@ -55,6 +58,10 @@ func (s *Server) HandleInfoRequest(w *Response, r *http.Request) *InfoRequest {
 		s.setErrorAndLog(w, E_INVALID_GRANT, nil, "handle_info_request=%s", "access data is expired")
 		return nil
 	}
+	if ret.AccessData.Client.GetId() != r.FormValue("client_id") {
+		s.setErrorAndLog(w, E_UNAUTHORIZED_CLIENT, nil, "handle_info_request=%s", "access data client redirect uri is empty")
+		return nil
+	}
 
 	return ret
 }
@@ -67,16 +74,16 @@ func (s *Server) FinishInfoRequest(w *Response, r *http.Request, ir *InfoRequest
 	}
 
 	// output data
-	w.Output["client_id"] = ir.AccessData.Client.GetId()
-	w.Output["access_token"] = ir.AccessData.AccessToken
-	w.Output["token_type"] = s.Config.TokenType
-	w.Output["expires_in"] = ir.AccessData.CreatedAt.Add(time.Duration(ir.AccessData.ExpiresIn)*time.Second).Sub(s.Now()) / time.Second
-	if ir.AccessData.RefreshToken != "" {
-		w.Output["refresh_token"] = ir.AccessData.RefreshToken
-	}
-	if ir.AccessData.Scope != "" {
-		w.Output["scope"] = ir.AccessData.Scope
-	}
+	// w.Output["client_id"] = ir.AccessData.Client.GetId()
+	// w.Output["access_token"] = ir.AccessData.AccessToken
+	// w.Output["token_type"] = s.Config.TokenType
+	// w.Output["expires_in"] = ir.AccessData.CreatedAt.Add(time.Duration(ir.AccessData.ExpiresIn)*time.Second).Sub(s.Now()) / time.Second
+	// if ir.AccessData.RefreshToken != "" {
+	// 	w.Output["refresh_token"] = ir.AccessData.RefreshToken
+	// }
+	// if ir.AccessData.Scope != "" {
+	// 	w.Output["scope"] = ir.AccessData.Scope
+	// }
 	if ir.AccessData.UserData != nil {
 		w.Output["user_id"] = ir.AccessData.UserData
 	}

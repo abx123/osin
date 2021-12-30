@@ -47,7 +47,7 @@ type Storage interface {
 	LoadAccess(token string) (*AccessData, error)
 
 	// RemoveAccess revokes or deletes an AccessData.
-	RemoveAccess(token string) error
+	// RemoveAccess(token string) error
 
 	// LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
 	// AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
